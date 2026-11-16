@@ -83,10 +83,10 @@ export function outcomeLabel(outcome: RollResult['outcome']): string {
 
 export function outcomeColor(outcome: RollResult['outcome']): string {
   switch (outcome) {
-    case 'critical_success': return 'text-pip-amber text-glow-amber';
-    case 'critical_failure': return 'text-pip-red text-glow-red';
-    case 'success': return 'text-pip-green text-glow';
-    case 'failure': return 'text-pip-red text-glow-red';
-    default: return 'text-pip-green';
+    case 'critical_success': return 'text-gold-bright glow-gold';
+    case 'critical_failure': return 'text-danger glow-red';
+    case 'success': return 'text-emerald glow-green';
+    case 'failure': return 'text-danger glow-red';
+    default: return 'text-ink';
   }
 }

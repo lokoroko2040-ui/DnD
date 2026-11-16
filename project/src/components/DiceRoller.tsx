@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
-import { Dices } from 'lucide-react';
-import type { RollResult } from '@/types';
-import { rollDie, rollD20, rollCustom, outcomeLabel, outcomeColor } from '@/lib/dice';
-import { mod, modStr } from '@/data/dndRules';
-import type { Stats, AbilityScore } from '@/types';
+import { Dices, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import type { RollResult, Stats, AbilityScore } from '@/types';
+import { rollD20, rollCustom, outcomeLabel, outcomeColor } from '@/lib/dice';
+import { mod, modStr, COMBAT_INFO } from '@/data/dndRules';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipCard } from './Tooltip';
 
 interface DiceRollerProps {
   stats: Stats;
@@ -42,12 +42,12 @@ export function DiceRoller({ stats, lastRoll, onRoll, requestedRoll }: DiceRolle
   const [displayNum, setDisplayNum] = useState<number | null>(null);
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  function animateRoll(finalResult: RollResult) {
+  function animateRoll(finalResult: RollResult, sides: number = 20) {
     setRolling(true);
     let frames = 0;
     const maxFrames = 15;
     animRef.current = setInterval(() => {
-      setDisplayNum(Math.floor(Math.random() * 20) + 1);
+      setDisplayNum(Math.floor(Math.random() * sides) + 1);
       frames++;
       if (frames >= maxFrames) {
         if (animRef.current) clearInterval(animRef.current);
@@ -62,68 +62,48 @@ export function DiceRoller({ stats, lastRoll, onRoll, requestedRoll }: DiceRolle
     let modifier = 0;
     let label = 'Произвольная проверка';
     let dc: number | null = null;
-
     if (requestedRoll) {
       const key = abilityToKey(requestedRoll.ability);
-      if (key) {
-        modifier = mod(stats[key]);
-      }
+      if (key) modifier = mod(stats[key]);
       label = requestedRoll.ability;
       dc = requestedRoll.dc;
     }
-
     const result = rollD20(mode, modifier, label, dc);
     animateRoll(result);
   }
 
   function handleCustomRoll(sides: number) {
     const r = rollCustom(sides);
-    setRolling(true);
-    let frames = 0;
-    const maxFrames = 12;
-    animRef.current = setInterval(() => {
-      setDisplayNum(Math.floor(Math.random() * sides) + 1);
-      frames++;
-      if (frames >= maxFrames) {
-        if (animRef.current) clearInterval(animRef.current);
-        setDisplayNum(r.result);
-        setRolling(false);
-        onRoll(r);
-      }
-    }, 50);
+    animateRoll(r, sides);
   }
 
-  const showD20 = requestedRoll !== undefined;
   const currentNum = rolling ? displayNum : (lastRoll && lastRoll.die === 20 ? lastRoll.result : displayNum);
 
   return (
-    <div className="border border-pip-greendark bg-pip-bgdark/60 rounded p-3">
-      <div className="flex items-center gap-2 mb-3">
-        <Dices size={16} className="text-pip-green" />
-        <span className="text-pip-green text-glow text-sm uppercase tracking-wider">Бросок кубиков</span>
+    <div className="dnd-card p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <Dices size={18} className="text-[#c8aa6e]" />
+        <span className="font-fantasy text-sm text-[#e8d5a8] font-semibold tracking-wide">Бросок кубиков</span>
       </div>
 
-      {/* d20 display */}
       <div className="flex flex-col items-center mb-4">
         <div
           className={cn(
-            'w-20 h-20 border-2 rounded-lg flex items-center justify-center text-3xl font-bold no-select transition-all',
-            rolling ? 'animate-dice-roll border-pip-amber text-pip-amber text-glow-amber' : 'border-pip-greendark text-pip-green text-glow',
-            lastRoll?.outcome === 'critical_success' && !rolling && 'border-pip-amber text-pip-amber text-glow-amber',
-            lastRoll?.outcome === 'critical_failure' && !rolling && 'border-pip-red text-pip-red text-glow-red',
+            'w-20 h-20 border-2 rounded-xl flex items-center justify-center text-3xl font-fantasy font-bold transition-all no-select',
+            rolling ? 'dice-rolling border-[#c8aa6e] text-[#c8aa6e]' : 'border-[#3d3528] text-[#d4c5a0]',
+            lastRoll?.outcome === 'critical_success' && !rolling && 'border-[#f0ad4e] text-[#f0ad4e]',
+            lastRoll?.outcome === 'critical_failure' && !rolling && 'border-[#e34d4d] text-[#e34d4d]',
           )}
         >
           {currentNum !== null ? currentNum : '—'}
         </div>
         {lastRoll && !rolling && (
-          <div className="mt-2 text-center">
-            <div className="text-xs text-pip-greendim">
-              {lastRoll.label} | d20{lastRoll.advantage !== 'normal' ? ` (${lastRoll.advantage === 'advantage' ? 'преим.' : 'помеха'})` : ''}
+          <div className="mt-3 text-center">
+            <div className="text-xs text-[#9a8a6a]">
+              {lastRoll.label} · d20{lastRoll.advantage !== 'normal' ? ` (${lastRoll.advantage === 'advantage' ? 'преим.' : 'помеха'})` : ''}
               {lastRoll.modifier !== 0 && ` ${modStr(lastRoll.modifier)}`}
             </div>
-            <div className="text-sm text-pip-green text-glow">
-              Итог: {lastRoll.total}
-            </div>
+            <div className="text-sm text-[#d4c5a0] font-semibold mt-0.5">Итог: {lastRoll.total}</div>
             {lastRoll.outcome && (
               <div className={cn('text-sm font-bold mt-1', outcomeColor(lastRoll.outcome))}>
                 {outcomeLabel(lastRoll.outcome)}
@@ -133,59 +113,50 @@ export function DiceRoller({ stats, lastRoll, onRoll, requestedRoll }: DiceRolle
         )}
       </div>
 
-      {/* Advantage / Disadvantage toggle */}
       <div className="flex gap-2 mb-3 justify-center">
-        <button
-          onClick={() => setMode('normal')}
-          className={cn('pip-btn text-xs px-3 py-1 rounded', mode === 'normal' && 'active')}
-        >
-          Обычный
-        </button>
-        <button
-          onClick={() => setMode('advantage')}
-          className={cn('pip-btn text-xs px-3 py-1 rounded', mode === 'advantage' && 'active')}
-        >
-          С Преимуществом
-        </button>
-        <button
-          onClick={() => setMode('disadvantage')}
-          className={cn('pip-btn text-xs px-3 py-1 rounded', mode === 'disadvantage' && 'active')}
-        >
-          С Помехой
-        </button>
+        <Tooltip content={<TooltipCard title={COMBAT_INFO.advantage.title}>{COMBAT_INFO.advantage.desc}</TooltipCard>}>
+          <button onClick={() => setMode('normal')} className={cn('dnd-btn text-xs px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer', mode === 'normal' && 'dnd-btn-active')}>
+            <Minus size={12} /> Обычный
+          </button>
+        </Tooltip>
+        <Tooltip content={<TooltipCard title="Преимущество">Бросок двух d20 — берётся наибольший результат.</TooltipCard>}>
+          <button onClick={() => setMode('advantage')} className={cn('dnd-btn text-xs px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer', mode === 'advantage' && 'dnd-btn-active')}>
+            <TrendingUp size={12} /> Преимущ.
+          </button>
+        </Tooltip>
+        <Tooltip content={<TooltipCard title="Помеха">Бросок двух d20 — берётся наименьший результат.</TooltipCard>}>
+          <button onClick={() => setMode('disadvantage')} className={cn('dnd-btn text-xs px-3 py-1.5 rounded flex items-center gap-1 cursor-pointer', mode === 'disadvantage' && 'dnd-btn-active')}>
+            <TrendingDown size={12} /> Помеха
+          </button>
+        </Tooltip>
       </div>
 
-      {/* Requested roll button */}
-      {requestedRoll && (
+      {requestedRoll ? (
         <button
           onClick={handleD20Roll}
           disabled={rolling}
-          className="w-full mb-3 border border-pip-amber bg-pip-amber/10 text-pip-amber text-glow-amber text-xs uppercase tracking-wider py-2 rounded hover:bg-pip-amber/20 transition-all disabled:opacity-50 no-select"
+          className="w-full mb-3 dnd-btn dnd-btn-primary text-xs py-2.5 rounded-lg disabled:opacity-50 no-select flex flex-col items-center gap-1"
         >
-          БРОСИТЬ ПРОВЕРКУ {requestedRoll.ability} (Сл {requestedRoll.dc})
-          <div className="text-[10px] text-pip-amber/70 normal-case mt-1">{requestedRoll.reason}</div>
+          <span className="uppercase tracking-wider">Бросить проверку {requestedRoll.ability} (Сл {requestedRoll.dc})</span>
+          <span className="text-[10px] opacity-80 normal-case">{requestedRoll.reason}</span>
         </button>
-      )}
-
-      {/* Free d20 roll */}
-      {showD20 && !requestedRoll && (
+      ) : (
         <button
           onClick={handleD20Roll}
           disabled={rolling}
-          className="w-full mb-3 border border-pip-green bg-pip-green/10 text-pip-green text-glow text-xs uppercase tracking-wider py-2 rounded hover:bg-pip-green/20 transition-all disabled:opacity-50 no-select"
+          className="w-full mb-3 dnd-btn dnd-btn-primary text-xs py-2.5 rounded-lg uppercase tracking-wider disabled:opacity-50 no-select"
         >
-          БРОСИТЬ d20
+          Бросить d20
         </button>
       )}
 
-      {/* Dice grid */}
       <div className="grid grid-cols-4 gap-2">
         {DICE.map(d => (
           <button
             key={d.sides}
             onClick={() => handleCustomRoll(d.sides)}
             disabled={rolling}
-            className="pip-btn text-xs py-2 rounded disabled:opacity-50 no-select"
+            className="dnd-btn text-xs py-2.5 rounded-lg disabled:opacity-50 no-select font-fantasy font-semibold"
           >
             {d.label}
           </button>

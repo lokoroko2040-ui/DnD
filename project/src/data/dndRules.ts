@@ -1,4 +1,4 @@
-import type { AbilityScore, Race, CharacterClass, Stats, Background } from '@/types';
+import type { AbilityScore, Race, CharacterClass, Stats, Background, ItemType, ItemSlot } from '@/types';
 
 export const ABILITY_SCORES: { key: AbilityScore; short: string; full: string }[] = [
   { key: 'str', short: 'СИЛ', full: 'Сила' },
@@ -41,6 +41,10 @@ export const ABILITY_INFO: Record<AbilityScore, { title: string; desc: string; s
     skills: ['Убеждение', 'Обман', 'Запугивание', 'Выступление'],
   },
 };
+
+export const ABILITY_DESCRIPTIONS: Record<AbilityScore, string> = Object.fromEntries(
+  (Object.keys(ABILITY_INFO) as AbilityScore[]).map(k => [k, ABILITY_INFO[k].desc])
+) as Record<AbilityScore, string>;
 
 // ─── All 18 Skills ─────────────────────────────────
 export interface SkillInfo {
@@ -257,6 +261,7 @@ export interface ClassData {
   skillChoices: string[];
   skillCount: number;
   level1Features: ClassFeature[];
+  levelFeatures: ClassFeature[];
   spellcaster: boolean;
   spellSlotsLevel1?: Record<string, number>;
   cantripsKnown?: number;
@@ -267,7 +272,7 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
   'Воин': {
     name: 'Воин', hitDie: 10, primaryAbility: 'str', savingThrows: ['str', 'con'],
     imagePrompt: 'fighter knight in plate armor, Baldur\'s Gate 3 style, dark fantasy digital painting',
-    description: 'Мастер оружия и брони. Высокий запас HP, боевые стили и_regenerative способности.',
+    description: 'Мастер оружия и брони. Высокий запас HP, боевые стили и восстановительные способности.',
     lore: 'Воины — профессиональные солдаты, гладиаторы и телохранители. Их мастерство с оружием не имеет равных, а закалённое тело выдерживает удары, которые убили бы мага.',
     armorProf: 'Вся броня, щиты', weaponProf: 'Простое и воинское оружие',
     skillChoices: ['Акробатика', 'Уход за животными', 'Атлетика', 'История', 'Проницательность', 'Запугивание', 'Расследование', 'Восприятие', 'Выживание'],
@@ -278,6 +283,13 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Лечение без магии', level: 1, desc: 'В начале хода восстанавливаете 1 HP, если HP > 0. Удвоить за короткий отдых.' },
     ],
     spellcaster: false,
+    levelFeatures: [
+      { name: 'Боевой стиль', level: 1, desc: 'Выберите боевой стиль: Стрельба (+2 к броскам атаки дальнобойным оружием), Защита (+1 КД при ношении брони), Двуручное оружие (+2 к урону при использовании оружия в двух руках), Фехтование (+2 к броску атаки при использовании одного оружия в одной руке), или Дуэлянт.' },
+      { name: 'Второе дыхание', level: 1, desc: 'Бонусное действие: восстановите 1d10 + уровень HP. 1 раз на короткий/длинный отдых.' },
+      { name: 'Лечение без магии', level: 1, desc: 'В начале хода восстанавливаете 1 HP, если HP > 0. Удвоить за короткий отдых.' },
+      { name: 'Всплеск действий', level: 2, desc: 'Бонусное действие: получаете одно дополнительное действие в этом ходу. 1 раз на короткий/длинный отдых.' },
+      { name: 'Мастер боевых манёвров', level: 3, desc: 'Выберите архетип: Мастер боевых манёвров (получает 4 манёвра и кубики превосходства d8) или Чемпион (критический удар на 19-20).' },
+    ],
   },
   'Плут': {
     name: 'Плут', hitDie: 8, primaryAbility: 'dex', savingThrows: ['dex', 'int'],
@@ -293,6 +305,13 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Воровской жаргон', level: 1, desc: 'Тайный язык воров. Можете общаться скрытно с другими плутами.' },
     ],
     spellcaster: false,
+    levelFeatures: [
+      { name: 'Экспертиза', level: 1, desc: 'Удвоенный бонус мастерства к двум выбранным навыкам (или одному навыку и воровским инструментам).' },
+      { name: 'Скрытая атака (Sneak Attack)', level: 1, desc: 'Один раз за ход, если у вас преимущество на атаку или рядом есть союзник, добавляете 1d6 к урону. Урон растёт с уровнем.' },
+      { name: 'Воровской жаргон', level: 1, desc: 'Тайный язык воров. Можете общаться скрытно с другими плутами.' },
+      { name: 'Хитрое действие', level: 2, desc: 'Бонусное действие: можете использовать Скрытность, Отход или Спринт как бонусное действие в дополнение к основному действию.' },
+      { name: 'Скрытая атака 2d6', level: 3, desc: 'Урон скрытой атаки увеличивается до 2d6. Выберите архетип: Вор, Убийца или Мистический ловкач.' },
+    ],
   },
   'Волшебник': {
     name: 'Волшебник', hitDie: 6, primaryAbility: 'int', savingThrows: ['int', 'wis'],
@@ -308,6 +327,13 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Ритуальное колдовство', level: 1, desc: 'Может накладывать заклинания с меткой «ритуал» как ритуал (без траты ячейки).' },
     ],
     spellcaster: true, spellSlotsLevel1: { '1': 2 }, cantripsKnown: 3, spellsKnownLevel1: 6,
+    levelFeatures: [
+      { name: 'Тайная магия', level: 1, desc: 'Заклинания из книги заклинаний. Можно копировать новые заклинания из свитков.' },
+      { name: 'Восстановление магии', level: 1, desc: 'При коротком отдыхе можете восстановить ячейки заклинаний (уровень равен половине волшебника).' },
+      { name: 'Ритуальное колдовство', level: 1, desc: 'Может накладывать заклинания с меткой «ритуал» как ритуал (без траты ячейки).' },
+      { name: 'Школа магии', level: 2, desc: 'Выберите школу магии: Ограждение, Вызов, Прорицание, Очарование, Иллюзия, Некромантия, Преобразование. Даёт возможность копировать заклинания выбранной школы за половину времени и золота.' },
+      { name: 'Традиция', level: 3, desc: 'Выберите традицию: Школа Войны (может накладывать заклинания как атаку оружия), Школа Писца или другую. Ячейки: 4 ячейки 1-го уровня.' },
+    ],
   },
   'Жрец': {
     name: 'Жрец', hitDie: 8, primaryAbility: 'wis', savingThrows: ['wis', 'cha'],
@@ -323,6 +349,13 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Святой символ', level: 1, desc: 'Святой символ как фокус для заклинаний. Носится на щите или амулете.' },
     ],
     spellcaster: true, spellSlotsLevel1: { '1': 2 }, cantripsKnown: 3,
+    levelFeatures: [
+      { name: 'Божественная магия', level: 1, desc: 'Заклинания от божества. Подготовка заклинаний из списка жреца (мудрость + уровень).' },
+      { name: 'Изгнание нежити', level: 1, desc: 'Может изгонять или обращать нежить. Спасбросок Мудрости Сл = 10 + бонус мастерства + мод. Мудрости.' },
+      { name: 'Святой символ', level: 1, desc: 'Святой символ как фокус для заклинаний. Носится на щите или амулете.' },
+      { name: 'Божественный канал', level: 2, desc: 'Может использовать Божественный канал для Изгнания нежити или Божественной силы. 1 раз на короткий/длинный отдых.' },
+      { name: 'Божественный домен', level: 3, desc: 'Выберите домен: Жизни, Войны, Знаний, Света, Природы, Бури или Обмана. Даёт дополнительные заклинания и способности.' },
+    ],
   },
   'Паладин': {
     name: 'Паладин', hitDie: 10, primaryAbility: 'str', savingThrows: ['wis', 'cha'],
@@ -338,6 +371,14 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Боевой стиль', level: 1, desc: 'Выберите боевой стиль: Защита, Дуэлянт, Великий бой или Защитник.' },
     ],
     spellcaster: false,
+    levelFeatures: [
+      { name: 'Божественное чувство', level: 1, desc: 'Действием можно обнаружить нежить, фей и демонов в пределах 60 футов. Расходует ячейку.' },
+      { name: 'Наложение рук', level: 1, desc: 'Действием касаетесь существа и восстанавливаете HP в размере 5 × уровень паладина. Лечит одну болезнь или яд. 1 раз на длинный отдых.' },
+      { name: 'Боевой стиль', level: 1, desc: 'Выберите боевой стиль: Защита, Дуэлянт, Великий бой или Защитник.' },
+      { name: 'Божественное заклинание', level: 2, desc: 'Получает заклинания (на основе Харизмы). Ячейки 1-го уровня: 2.' },
+      { name: 'Божественный удар (Divine Smite)', level: 2, desc: 'При попадании атакой ближнего боя можно потратить ячейку заклинания, чтобы добавить 2d8 урона излучением. Дополнительно +1d8 за каждую ячейку выше 1-го.' },
+      { name: 'Священная клятва', level: 3, desc: 'Выберите клятву: Преданности, Древних, Мести или Короны. Даёт способности и заклинания.' },
+    ],
   },
   'Следопыт': {
     name: 'Следопыт', hitDie: 10, primaryAbility: 'dex', savingThrows: ['str', 'dex'],
@@ -353,6 +394,13 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Боевой стиль', level: 1, desc: 'Выберите боевой стиль: Стрельба или Защита.' },
     ],
     spellcaster: false,
+    levelFeatures: [
+      { name: 'Избранный враг', level: 1, desc: 'Выберите тип врагов. Преимущество на проверки Восприятия и Выживания против них. +2 к урону.' },
+      { name: 'Следопыт-исследователь', level: 1, desc: 'Можете передвигаться в труднопроходимой местности без снижения скорости.' },
+      { name: 'Боевой стиль', level: 1, desc: 'Выберите боевой стиль: Стрельба или Защита.' },
+      { name: 'Заклинания следопыта', level: 2, desc: 'Получает заклинания (на основе Мудрости). Ячейки 1-го уровня: 2.' },
+      { name: 'Архетип следопыта', level: 3, desc: 'Выберите архетип: Охотник, Повелитель зверей или Глубинный сталкер.' },
+    ],
   },
   'Варвар': {
     name: 'Варвар', hitDie: 12, primaryAbility: 'str', savingThrows: ['str', 'con'],
@@ -367,6 +415,13 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Защита без доспехов', level: 1, desc: 'Без брони: КД = 10 + мод. Ловкости + мод. Телосложения.' },
     ],
     spellcaster: false,
+    levelFeatures: [
+      { name: 'Ярость', level: 1, desc: 'Бонусное действие: входите в ярость. Преимущество на проверки Силы. Сопротивление дробящему/колющему/рубящему урону. +2 к урону в ближнем бою. Длится 1 минута. 2 раза на длинный отдых.' },
+      { name: 'Защита без доспехов', level: 1, desc: 'Без брони: КД = 10 + мод. Ловкости + мод. Телосложения.' },
+      { name: 'Опасное чувство', level: 2, desc: 'Преимущество на броски инициативы. При удивлении может действовать в первый раунд.' },
+      { name: 'Безрассудная атака', level: 2, desc: 'Может получить преимущество на первую атаку в ходе, но атаки против вас тоже с преимуществом до следующий ход.' },
+      { name: 'Путь первобытного', level: 3, desc: 'Выберите архетип: Берсерк (дополнительный урон в ярости), Тотемный воин (животный тотем даёт способности) или Духоискатель.' },
+    ],
   },
   'Бард': {
     name: 'Бард', hitDie: 8, primaryAbility: 'cha', savingThrows: ['dex', 'cha'],
@@ -382,6 +437,13 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Мастер на все руки', level: 1, desc: 'Половина бонуса мастерства (округление вниз) ко всем навыки, в которых нет владения.' },
     ],
     spellcaster: true, spellSlotsLevel1: { '1': 2 }, cantripsKnown: 2, spellsKnownLevel1: 4,
+    levelFeatures: [
+      { name: 'Бардовская магия', level: 1, desc: 'Заклинания, основанные на Харизме. Заклинания известны (не подготовляются).' },
+      { name: 'Вдохновение барда', level: 1, desc: 'Бонусное действие: союзник может добавить к4 к одному броску. 1 раз на короткий/длинный отдых (на 1 уровне).' },
+      { name: 'Мастер на все руки', level: 1, desc: 'Половина бонуса мастерства ко всем навыкам, в которых нет владения.' },
+      { name: 'Песнь отдыха', level: 2, desc: 'Во время короткого отдыха все союзники восстанавливают дополнительно 1d6 HP.' },
+      { name: 'Коллегия барда', level: 3, desc: 'Выберите коллегию: Знаний (дополнительные навыки и заклинания) или Отваги (боевые бонусы).' },
+    ],
   },
   'Колдун': {
     name: 'Колдун', hitDie: 8, primaryAbility: 'cha', savingThrows: ['wis', 'cha'],
@@ -396,6 +458,12 @@ export const CLASSES: Record<CharacterClass, ClassData> = {
       { name: 'Магия пакта', level: 1, desc: 'Заклинания от покровителя. Все ячейки одного уровня. Короткий отдых восстанавливает ячейки.' },
     ],
     spellcaster: true, spellSlotsLevel1: { '1': 1 }, cantripsKnown: 2, spellsKnownLevel1: 2,
+    levelFeatures: [
+      { name: 'Пакт с покровителем', level: 1, desc: 'Выберите покровителя: Архифея (обман и иллюзии), Демон (огонь и разрушение) или Великий Древний (космический ужас).' },
+      { name: 'Магия пакта', level: 1, desc: 'Заклинания от покровителя. Все ячейки одного уровня. Короткий отдых восстанавливает ячейки.' },
+      { name: 'Тайные воззвания', level: 2, desc: 'Получаете 2 тайных воззвания — особые способности, модифицирующие заклинания или дающие новые возможности.' },
+      { name: 'Тип пакта', level: 3, desc: 'Выберите тип пакта: Клинок (оружие как фокус), Том (ритуальная книга) или Цепь (спутник-фамильяр).' },
+    ],
   },
 };
 
@@ -406,7 +474,7 @@ export const COMBAT_INFO = {
   spellDC: { title: 'Сложность Заклинаний (Spell Save DC)', desc: 'Равна 8 + Бонус Мастерства + модификатор базовой заклинательной характеристики. Враг должен выбросить спасбросок не ниже этого значения, чтобы resisted.' },
   advantage: { title: 'Преимущество и Помеха', desc: 'Бросок двух костей d20 вместо одной — при Преимуществе выбирается наибольший результат, при Помехе — наименьший.' },
   shortRest: { title: 'Короткий отдых (1 час)', desc: 'Позволяет потратить Кости Хитов для лечения. Можно опознать магические артефакты. Некоторые способности восстанавливаются.' },
-  longRest: { title: 'Длинный отдых (8 часов)', desc: 'Полностью восстанавливает HP и ячейки заклинаний. Восстанавливает Кости Хитов (половину от максимума). Снимает大部分 состояния.' },
+  longRest: { title: 'Длинный отдых (8 часов)', desc: 'Полностью восстанавливает HP и ячейки заклинаний. Восстанавливает Кости Хитов (половину от максимума). Снимает большинство состояний.' },
   initiative: { title: 'Инициатива', desc: 'Определяет очерёдность ходов в бою. Бросок d20 + мод. Ловкости. Самый высокий ходит первым.' },
   hitDice: { title: 'Кости Хитов', desc: 'Используются для лечения во время короткого отдыха. Количество костей = уровню персонажа. Кость определяется классом: d6 (Волшебник), d8 (Плут/Жрец/Бард/Колдун), d10 (Воин/Паладин/Следопыт), d12 (Варвар).' },
   passivePerception: { title: 'Пассивная Внимательность', desc: 'Равна 10 + мод. Восприятия + бонус мастерства (если есть). Используется Мастером для определения, замечаете ли вы скрытые объекты без броска.' },
@@ -494,6 +562,135 @@ export function levelFromXP(xp: number): number {
   }
   return Math.min(lvl, 20);
 }
+
+// ─── Starting equipment options ──────────────────
+export interface StartingEquipmentOption {
+  id: string;
+  label: string;
+  items: { name: string; type: ItemType; slot: ItemSlot; ac_bonus: number; damage_dice: string; weight: number; value_gp: number; description: string }[];
+}
+
+export const STARTING_EQUIPMENT: Record<CharacterClass, StartingEquipmentOption[]> = {
+  'Воин': [
+    { id: 'sword_shield', label: 'Длинный меч + Щит', items: [
+      { name: 'Кольчуга', type: 'armor', slot: 'armor', ac_bonus: 5, damage_dice: '', weight: 30, value_gp: 50, description: 'Стандартная кольчуга' },
+      { name: 'Длинный меч', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d8', weight: 3, value_gp: 15, description: 'Надёжный стальной меч' },
+      { name: 'Щит', type: 'armor', slot: 'off_hand', ac_bonus: 2, damage_dice: '', weight: 6, value_gp: 10, description: 'Деревянный щит с металлическим умбоном' },
+    ]},
+    { id: 'greatsword', label: 'Двуручный меч', items: [
+      { name: 'Кольчуга', type: 'armor', slot: 'armor', ac_bonus: 5, damage_dice: '', weight: 30, value_gp: 50, description: 'Стандартная кольчуга' },
+      { name: 'Двуручный меч', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '2d6', weight: 6, value_gp: 50, description: 'Массивный двуручный меч' },
+    ]},
+  ],
+  'Плут': [
+    { id: 'dual_dagger', label: 'Два кинжала', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Лёгкая кожаная броня' },
+      { name: 'Кинжал', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d4', weight: 1, value_gp: 2, description: 'Быстрый кинжал' },
+      { name: 'Кинжал', type: 'weapon', slot: 'off_hand', ac_bonus: 0, damage_dice: '1d4', weight: 1, value_gp: 2, description: 'Второй кинжал для скрытной атаки' },
+    ]},
+    { id: 'rapier', label: 'Рапира + Кинжал', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Лёгкая кожаная броня' },
+      { name: 'Рапира', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d8', weight: 2, value_gp: 25, description: 'Лёгкая изящная рапира' },
+      { name: 'Кинжал', type: 'weapon', slot: 'off_hand', ac_bonus: 0, damage_dice: '1d4', weight: 1, value_gp: 2, description: 'Запасной кинжал' },
+    ]},
+  ],
+  'Волшебник': [
+    { id: 'staff', label: 'Посох + Кинжал', items: [
+      { name: 'Посох', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d6', weight: 4, value_gp: 5, description: 'Деревянный посох с кристаллом' },
+      { name: 'Кинжал', type: 'weapon', slot: 'off_hand', ac_bonus: 0, damage_dice: '1d4', weight: 1, value_gp: 2, description: 'Скрытый кинжал для самообороны' },
+    ]},
+  ],
+  'Жрец': [
+    { id: 'mace_shield', label: 'Боевой молот + Щит', items: [
+      { name: 'Кольчуга', type: 'armor', slot: 'armor', ac_bonus: 5, damage_dice: '', weight: 30, value_gp: 50, description: 'Кольчуга с символом веры' },
+      { name: 'Боевой молот', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d8', weight: 5, value_gp: 15, description: 'Тяжёлый боевой молот' },
+      { name: 'Щит', type: 'armor', slot: 'off_hand', ac_bonus: 2, damage_dice: '', weight: 6, value_gp: 10, description: 'Щит со святым символом' },
+    ]},
+  ],
+  'Паладин': [
+    { id: 'sword_shield', label: 'Длинный меч + Щит', items: [
+      { name: 'Кольчуга', type: 'armor', slot: 'armor', ac_bonus: 5, damage_dice: '', weight: 30, value_gp: 50, description: 'Освящённая кольчуга' },
+      { name: 'Длинный меч', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d8', weight: 3, value_gp: 15, description: 'Меч правосудия' },
+      { name: 'Щит', type: 'armor', slot: 'off_hand', ac_bonus: 2, damage_dice: '', weight: 6, value_gp: 10, description: 'Щит с гербом ордена' },
+    ]},
+    { id: 'greatsword', label: 'Двуручный меч', items: [
+      { name: 'Кольчуга', type: 'armor', slot: 'armor', ac_bonus: 5, damage_dice: '', weight: 30, value_gp: 50, description: 'Освящённая кольчуга' },
+      { name: 'Двуручный меч', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '2d6', weight: 6, value_gp: 50, description: 'Святой двуручный клинок' },
+    ]},
+  ],
+  'Следопыт': [
+    { id: 'bow', label: 'Длинный лук + Кинжал', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Лёгкая броня следопыта' },
+      { name: 'Длинный лук', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d8', weight: 2, value_gp: 25, description: 'Дальний лук' },
+      { name: 'Кинжал', type: 'weapon', slot: 'off_hand', ac_bonus: 0, damage_dice: '1d4', weight: 1, value_gp: 2, description: 'Охотничий нож' },
+    ]},
+    { id: 'dual_sword', label: 'Два коротких меча', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Лёгкая броня следопыта' },
+      { name: 'Короткий меч', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d6', weight: 2, value_gp: 10, description: 'Короткий меч' },
+      { name: 'Короткий меч', type: 'weapon', slot: 'off_hand', ac_bonus: 0, damage_dice: '1d6', weight: 2, value_gp: 10, description: 'Второй короткий меч' },
+    ]},
+  ],
+  'Варвар': [
+    { id: 'greataxe', label: 'Боевой топор', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Грубая кожаная броня' },
+      { name: 'Боевой топор', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d8', weight: 6, value_gp: 10, description: 'Тяжёлый топор' },
+    ]},
+    { id: 'mace', label: 'Двуручный молот', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Грубая кожаная броня' },
+      { name: 'Двуручный молот', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d10', weight: 8, value_gp: 15, description: 'Громадный дробящий молот' },
+    ]},
+  ],
+  'Бард': [
+    { id: 'rapier', label: 'Рапира', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Изящная кожаная броня' },
+      { name: 'Рапира', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d8', weight: 2, value_gp: 25, description: 'Лёгкая рапира барда' },
+    ]},
+  ],
+  'Колдун': [
+    { id: 'staff', label: 'Посох + Кинжал', items: [
+      { name: 'Кожаный доспех', type: 'armor', slot: 'armor', ac_bonus: 1, damage_dice: '', weight: 10, value_gp: 10, description: 'Тёмная одежда с капюшоном' },
+      { name: 'Посох', type: 'weapon', slot: 'main_hand', ac_bonus: 0, damage_dice: '1d6', weight: 4, value_gp: 5, description: 'Посох с символом пакта' },
+      { name: 'Кинжал', type: 'weapon', slot: 'off_hand', ac_bonus: 0, damage_dice: '1d4', weight: 1, value_gp: 2, description: 'Ритуальный кинжал' },
+    ]},
+  ],
+};
+
+// ─── Spell data for level 1 spellcasters ──────
+export interface SpellInfo {
+  name: string;
+  level: number;
+  school: string;
+  castingTime: string;
+  range: string;
+  duration: string;
+  components: string;
+  concentration: boolean;
+  description: string;
+  damage?: string;
+}
+
+export const CANTRIPS: SpellInfo[] = [
+  { name: 'Огненный снаряд', level: 0, school: 'Воплощение', castingTime: '1 действие', range: '120 футов', duration: 'Мгновенно', components: 'В, С', concentration: false, description: 'Метаете сгусток огня в цель. Атака дальнобойным заклинанием.', damage: '1d10 урона огнём' },
+  { name: 'Малая иллюзия', level: 0, school: 'Иллюзия', castingTime: '1 действие', range: '30 футов', duration: '1 минута', components: 'С, М', concentration: false, description: 'Создаёте иллюзию объекта или звука размером не более 5 футов.' },
+  { name: 'Магическая рука', level: 0, school: 'Преобразование', castingTime: '1 действие', range: '30 футов', duration: '1 минута', components: 'В, С', concentration: false, description: 'Призываете призрачную руку, которая может манипулировать предметами.' },
+  { name: 'Починка', level: 0, school: 'Преобразование', castingTime: '1 минута', range: 'Касание', duration: 'Мгновенно', components: 'В, С', concentration: false, description: 'Восстанавливаете мелкие повреждения на предмете.' },
+  { name: 'Холодное касание', level: 0, school: 'Некромантия', castingTime: '1 действие', range: 'Касание', duration: 'Мгновенно', components: 'В, С', concentration: false, description: 'Касаетесь существа, причиняя урон холодом.', damage: '1d8 урона холодом' },
+  { name: 'Чудо', level: 0, school: 'Преобразование', castingTime: '1 действие', range: '30 футов', duration: '1 час', components: 'В, С', concentration: false, description: 'Малое магическое развлечение: звук, мерцание, запах.' },
+  { name: 'Руководство', level: 0, school: 'Гадание', castingTime: '1 бонусное действие', range: 'Касание', duration: 'Мгновенно', components: 'В, С', concentration: false, description: 'Существо может добавить к4 к броску атаки или характеристики в течение 10 секунд.' },
+  { name: 'Свет', level: 0, school: 'Воплощение', castingTime: '1 действие', range: 'Касание', duration: '1 час', components: 'В, М', concentration: false, description: 'Предмет излучает яркий свет в радиусе 20 футов.' },
+  { name: 'Владение словом', level: 0, school: 'Очарование', castingTime: '1 действие', range: '30 футов', duration: 'Мгновенно', components: 'В', concentration: false, description: 'Существо должно преуспеть в спасброске Мудрости или подчиниться короткой команде.' },
+];
+
+export const SPELLS_LEVEL_1: SpellInfo[] = [
+  { name: 'Сонной стреле', level: 1, school: 'Воплощение', castingTime: '1 действие', range: '90 футов', duration: 'Мгновенно', components: 'В, С, М', concentration: false, description: 'Создаёте стрелу кислоты, летящую в цель.', damage: '3d4 урона кислотой' },
+  { name: 'Волшебная стрела', level: 1, school: 'Воплощение', castingTime: '1 действие', range: '120 футов', duration: 'Мгновенно', components: 'В, С', concentration: false, description: 'Создаёте 3 дротика силы, поражающие цель.', damage: '1d4+1 урона силой каждый' },
+  { name: 'Щит', level: 1, school: 'Защита', castingTime: '1 реакция', range: 'На себя', duration: '1 раунд', components: 'В, С', concentration: false, description: 'Невидимый барьер даёт +5 к КД против текущей атаки.' },
+  { name: 'Лечение ран', level: 1, school: 'Воплощение', castingTime: '1 действие', range: 'Касание', duration: 'Мгновенно', components: 'В, М', concentration: false, description: 'Касаетесь существа, восстанавливая его HP.', damage: '1d8 + мод. заклинательной характеристики лечения' },
+  { name: 'Благословение', level: 1, school: 'Очарование', castingTime: '1 действие', range: '30 футов', duration: '1 минута', components: 'В, С, М', concentration: true, description: 'До 3 существ добавляют к4 к броскам атаки и спасброскам.' },
+  { name: 'Громовой разряд', level: 1, school: 'Воплощение', castingTime: '1 действие', range: 'На себя (15-фт конус)', duration: 'Мгновенно', components: 'В, С', concentration: false, description: 'Волна громовой энергии отбрасывает существ.', damage: '2d8 урона звуком' },
+  { name: 'Доспех мага', level: 1, school: 'Защита', castingTime: '1 действие', range: 'Касание', duration: '8 часов', components: 'В, С, М', concentration: false, description: 'Существо получает КД = 13 + мод. Ловкости. Не работает в броне.' },
+  { name: 'Жуткий смех Таша', level: 1, school: 'Очарование', castingTime: '1 действие', range: '30 футов', duration: '1 минута', components: 'В, С, М', concentration: true, description: 'Существо начинает неудержимо смеяться, падая на землю.' },
+];
 
 export function getSkillMod(skillName: string, stats: Stats, level: number, proficientSkills: string[]): number {
   const skill = SKILLS.find(s => s.name === skillName);

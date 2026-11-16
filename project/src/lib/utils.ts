@@ -72,7 +72,7 @@ export function typeLabel(type: string): string {
 export function conditionColorClass(cond: string): string {
   const danger = ['Отравлен', 'Ослеплен', 'Оглушен', 'Сбит с ног', 'Ранен'];
   const warn = ['Очарован', 'Испуган', 'Истощён'];
-  if (danger.includes(cond)) return 'text-dnd-danger';
-  if (warn.includes(cond)) return 'text-dnd-warn';
-  return 'text-dnd-success';
+  if (danger.includes(cond)) return 'text-danger';
+  if (warn.includes(cond)) return 'text-amber';
+  return 'text-emerald';
 }
